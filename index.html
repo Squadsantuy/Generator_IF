@@ -149,6 +149,13 @@
             document.getElementById('envelope').classList.add('open');
             document.getElementById('hint').classList.add('hidden');
             document.getElementById('audio-takbir').play();
+            // Gunakan decodeURIComponent agar link gambar bersih kembali
+const cleanImgUrl = decodeURIComponent(img);
+if (cleanImgUrl && cleanImgUrl !== 'null') {
+    document.getElementById('letter-bg').style.backgroundImage = "url('" + cleanImgUrl + "')";
+    document.getElementById('letter-bg').style.backgroundSize = "cover";
+}
+
         }
     </script>
 </body>
