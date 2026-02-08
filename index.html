@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="title-seo">Selamat Idul Fitri 1447H</title>
+    
+    <meta property="og:title" content="Kiriman Kartu Ucapan Idul Fitri">
+    <meta property="og:description" content="Klik untuk membuka pesan ucapan spesial dari kerabatmu.">
+    <meta property="og:image" content="https://i.ibb.co/k5G600g/lebaran-card-default.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f7f0; }
+        .font-arabic { font-family: 'Amiri', serif; }
+        .envelope-wrapper { perspective: 1000px; margin-top: 50px; }
+        .envelope { position: relative; width: 320px; height: 210px; background: #1b4332; transition: all 0.8s; transform-style: preserve-3d; cursor: pointer; border-radius: 0 0 15px 15px; }
+        .envelope.open { transform: translateY(120px); }
+        .flap { position: absolute; top: 0; width: 0; height: 0; border-left: 160px solid transparent; border-right: 160px solid transparent; border-top: 110px solid #2d6a4f; transform-origin: top; transition: all 0.5s; z-index: 3; }
+        .envelope.open .flap { transform: rotateX(180deg); }
+        .letter { position: absolute; bottom: 5px; left: 10px; right: 10px; height: 190px; background: #fff; transition: all 0.7s; z-index: 2; border-radius: 10px; overflow: hidden; background-size: cover; background-position: center; }
+        .envelope.open .letter { transform: translateY(-210px); height: 420px; }
+        .content-overlay { background: rgba(255, 255, 255, 0.88); height: 100%; padding: 25px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .loading-spin { border: 3px solid #f3f3f3; border-top: 3px solid #1b4332; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-6">
+
+    <audio id="audio-takbir" loop>
+        <source src="https://cdn.pixabay.com/audio/2022/03/25/audio_7322d7c5b6.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="editor-section" class="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-green-800">Idul Fitri Card Generator</h1>
+            <p class="text-sm text-gray-500">idulfitri.web.id</p>
+        </div>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="text-xs font-bold text-gray-600 uppercase">Nama Anda</label>
+                <input type="text" id="input-nama" class="w-full mt-1 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Contoh: Keluarga Ahmad">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-600 uppercase">Pesan Ucapan</label>
+                <textarea id="input-pesan" rows="3" class="w-full mt-1 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Tulis ucapan selamat..."></textarea>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-600 uppercase">Foto Latar (Wajib agar cantik)</label>
+                <input type="file" id="input-foto" accept="image/*" class="w-full mt-1 text-sm text-gray-500">
+            </div>
+            
+            <button onclick="generateLink()" id="btn-submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex justify-center items-center gap-2">
+                <span id="btn-text">Buat & Salin Link</span>
+                <div id="btn-loader" class="loading-spin hidden"></div>
+            </button>
+        </div>
+    </div>
+
+    <div id="app-section" class="hidden flex flex-col items-center">
+        <div class="envelope-wrapper">
+            <div id="envelope" class="envelope shadow-2xl" onclick="openEnvelope()">
+                <div class="flap"></div>
+                <div id="letter-bg" class="letter shadow-xl">
+                    <div class="content-overlay">
+                        <h2 class="font-arabic text-4xl text-green-900 mb-2">عيد مبارك</h2>
+                        <p id="display-pesan" class="text-sm text-gray-700 italic leading-relaxed mb-4"></p>
+                        <div class="w-12 h-0.5 bg-green-600 mb-3"></div>
+                        <p class="text-[10px] uppercase tracking-tighter text-gray-400">Dari:</p>
+                        <p id="display-nama" class="text-xl font-bold text-green-900"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p id="hint" class="mt-40 text-green-900 font-bold animate-bounce bg-white/50 px-4 py-2 rounded-full shadow-sm">Klik Amplop untuk Membuka</p>
+        <button onclick="window.location.href='/'" class="mt-20 text-xs text-green-700 underline">Buat Ucapan Versi Kamu Sendiri</button>
+    </div>
+
+    <script>
+        const API_KEY = '31f22127b76f0d0a709b48f4d31f7253';
+
+        // CEK DATA SAAT HALAMAN DIBUKA
+        const urlParams = new URLSearchParams(window.location.search);
+        const n = urlParams.get('n');
+        const m = urlParams.get('m');
+        const img = urlParams.get('img');
+
+        if (n) {
+            // Tampilkan kartu jika ada parameter nama
+            document.getElementById('editor-section').classList.add('hidden');
+            document.getElementById('app-section').classList.remove('hidden');
+            
+            document.getElementById('display-nama').innerText = decodeURIComponent(n);
+            document.getElementById('display-pesan').innerText = m ? decodeURIComponent(m) : "Selamat Hari Raya Idul Fitri 1447H. Mohon maaf lahir dan batin.";
+            
+            if (img) {
+                document.getElementById('letter-bg').style.backgroundImage = `url('${decodeURIComponent(img)}')`;
+            }
+            
+            document.getElementById('title-seo').innerText = "Ucapan Idul Fitri dari " + n;
+        }
+
+        async function generateLink() {
+            const nama = document.getElementById('input-nama').value;
+            const pesan = document.getElementById('input-pesan').value;
+            const foto = document.getElementById('input-foto').files[0];
+            const btnText = document.getElementById('btn-text');
+            const loader = document.getElementById('btn-loader');
+
+            if (!nama) return alert("Silakan masukkan nama!");
+
+            // Loading state
+            btnText.innerText = "Sedang Memproses...";
+            loader.classList.remove('hidden');
+            document.getElementById('btn-submit').disabled = true;
+
+            let finalImg = '';
+            if (foto) {
+                const formData = new FormData();
+                formData.append('image', foto);
+                try {
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    finalImg = data.data.url;
+                } catch (e) {
+                    console.error("Gagal upload gambar");
+                }
+            }
+
+            // Buat URL
+            const query = `?n=${encodeURIComponent(nama)}&m=${encodeURIComponent(pesan)}&img=${encodeURIComponent(finalImg)}`;
+            const fullUrl = window.location.origin + query;
+
+            // Copy ke Clipboard
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert("Link berhasil disalin! Sekarang bagikan ke WhatsApp.");
+                window.location.href = fullUrl; // Langsung tampilkan hasilnya
+            });
+        }
+
+        function openEnvelope() {
+            document.getElementById('envelope').classList.add('open');
+            document.getElementById('hint').classList.add('hidden');
+            document.getElementById('audio-takbir').play();
+        }
+    </script>
+</body>
+</html>
